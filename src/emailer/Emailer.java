@@ -18,6 +18,9 @@ import javax.mail.internet.*;
  * App device password: hzkp axyz znkv kjuk
  */
 public class Emailer {
+    private Color pastelBlue = new Color(204, 229, 255);
+    private Color pastelGreen = new Color(204, 255, 204);
+    private Color pastelPurple = new Color(221, 204, 255);
     private static String department;
     private static int deptCount;
     private JButton[] deptButtons; 
@@ -31,6 +34,9 @@ public class Emailer {
     private JButton fileButtons[];
     private static String currFile;
     private JButton sendEmail;
+    
+    private JTextArea messageTextArea;
+
     
     /**
      * @param args the command line arguments
@@ -57,14 +63,13 @@ public class Emailer {
         mainPanel.setLayout(new BorderLayout()); 
         JPanel leftPanel = new JPanel();
         rightPanel = new JPanel(new BorderLayout());
-        leftPanel.setBackground(Color.yellow); // might not show
-        rightPanel.setBackground(Color.green);
+        rightPanel.setBackground(pastelGreen);
         JPanel leftPanelUpper = new JPanel();
         leftPanelLower = new JPanel();
         JPanel leftPanelMiddle = new JPanel();
         leftPanel.setLayout(new GridLayout(2,1));  
-        leftPanelUpper.setBackground(Color.lightGray);
-        leftPanelLower.setBackground(Color.cyan);
+        leftPanelUpper.setBackground(pastelPurple);
+        leftPanelLower.setBackground(pastelBlue);
         leftPanel.add(leftPanelUpper); 
         leftPanel.add(leftPanelLower); 
         mainPanel.add(leftPanel, BorderLayout.WEST);
@@ -96,7 +101,7 @@ public class Emailer {
         for (int i = 0; i < deptCount; i++) {
             deptButtons[i] = new JButton(contents[i]);
             System.out.println("Department Button: " + contents[i]);
-            deptButtons[i].setBackground(Color.lightGray);
+            deptButtons[i].setBackground(pastelPurple);
             deptButtons[i].setForeground(Color.BLACK); 
             deptButtons[i].setOpaque(true);
             deptButtons[i].setBorderPainted(true);
@@ -125,6 +130,7 @@ public class Emailer {
         sendEmail = new JButton("Send Emails");
         sendEmail.addActionListener(new SendEmailActionListener()); // action listern for box selected 
         leftPanelUpper.add(sendEmail);
+        leftPanelLower.add(new JLabel("Please select a department"));
         jf.setVisible(true);
     }
     private void updateLowerPanelWithFileButtons() {
@@ -135,12 +141,12 @@ public class Emailer {
         TitledBorder fileBorder = BorderFactory.createTitledBorder("Files"); 
         leftPanelLower.setBorder(fileBorder);
         fileButtons = new JButton[files.length];
-        String labelContent = "Please select a file, there are " + files.length;
+        String labelContent = "Please select a matching file, there are " + files.length;
         if (weekField.getText() == null || weekField.getText().equals("")) {
             labelContent += "\nPlease enter a week within the schedule";
         }
         JTextArea textArea = new JTextArea(labelContent);
-        textArea.setBackground(Color.CYAN);
+        textArea.setBackground(pastelBlue);
         leftPanelLower.add(textArea);
         for (int i = 0; i < files.length; i++) {
             fileButtons[i] = new JButton(files[i]);
@@ -155,7 +161,7 @@ public class Emailer {
         leftPanelLower.removeAll(); // Remove all components
         leftPanelLower.setLayout(new BorderLayout()); // Reset layout
         JLabel messageLabel = new JLabel("Select a department!");
-        messageLabel.setBackground(Color.CYAN);
+        messageLabel.setBackground(pastelBlue);
         messageLabel.setHorizontalAlignment(SwingConstants.CENTER);
         leftPanelLower.add(messageLabel, BorderLayout.CENTER); // Add message label
         leftPanelLower.revalidate();
@@ -187,6 +193,14 @@ public class Emailer {
        JScrollPane scroll = new JScrollPane(table); 
        scroll.setBorder(BorderFactory.createTitledBorder("Select a Department"));
        rightPanel.add(scroll, BorderLayout.CENTER);
+       
+       // Add a JTextArea to display messages being constructed
+        messageTextArea = new JTextArea();
+        messageTextArea.setEditable(false); // Make it non-editable
+        JScrollPane messageScrollPane = new JScrollPane(messageTextArea);
+        messageScrollPane.setBorder(BorderFactory.createTitledBorder("Messages Being Constructed"));
+        messageScrollPane.setPreferredSize(new Dimension(300, 400));
+        rightPanel.add(messageScrollPane, BorderLayout.SOUTH);
     }
     private void sendEmails(){
         String msg;
@@ -200,9 +214,15 @@ public class Emailer {
                 String name = (String) table.getValueAt(i, 0); // gets the name
                 fileContents = fileInAList(currFile, department);
                 msg = constructMsg(fileContents, weekField.getText(), name);
-                sendEmail(msg, email); 
-//                sendEmail(email); // Send the email 
+//                sendEmail(msg, email); 
+                sendEmail(email); // Send the email 
                 
+            // Update the JTextArea with the constructed message
+                String newMsg = messageTextArea.getText() + "To: " + email + "\n" + msg;
+                String deliniator = "- - - - - - - - - - - - - - - - - - - -";
+                newMsg += (deliniator + deliniator + "\n\n");
+                messageTextArea.setText(newMsg);
+
                 updateEmailStatus(email, "yes"); // update status in the database
                 table.setValueAt("yes", i, 3); // update the table model
             }
@@ -327,6 +347,7 @@ public class Emailer {
             String personData;
             String greeting = "Hello " + fullName + "! Here are your shifts for the week of " + weekOf + ":\n";
             int weekOfPosition = 1;
+            boolean weekFound = false;
             String msg = greeting;
             String[] fileHeaderList = fileContents[1].split(",");
             System.out.println("fileHeader: "+ fileContents[1]);
@@ -334,8 +355,16 @@ public class Emailer {
             for (int i = 1; i < fileHeaderList.length; i++) {
                 if (fileHeaderList[i].equals(weekOf)) {
                     weekOfPosition = i;
+                    weekFound = true;
                     break;
                 }
+            }
+            if (weekFound == false) { // week was not in selected schedule
+                String invalidGreeting = "\nNOTIFICATION FROM TheJavaReminder9000!\n";
+                String invalidMsg = "The email attempt failed to send.\n"
+                        + "The week entered was not found in this schedule\n"
+                        + "Please enter a valid week!\n";
+                return invalidGreeting + invalidMsg;
             }
             int personIdx = 1;
             int counter = 0;
@@ -355,7 +384,7 @@ public class Emailer {
             if (msg.equals(greeting)) { // they had no shift
                 msg += "\t No shifts for the week of " + weekOf + "\n";
             }
-            msg += "\nThank you. \nHave a good day.";
+            msg += "\nThank you. \nHave a good day.\n";
             System.out.println("Msg: \n" + msg);
             
         return msg;
@@ -409,7 +438,7 @@ public class Emailer {
         // set all buttons to an unpressed state, and remove their colors
         for (int i = 0; i < deptCount; i++) {
             deptButtonsPressed[i] = false;
-            deptButtons[i].setBackground(null);
+            deptButtons[i].setBackground(pastelPurple);
         }
     }
     class DepartmentButtonListener implements ActionListener {
@@ -454,11 +483,9 @@ public class Emailer {
         public void actionPerformed(ActionEvent e) {
             if (department != null && weekField.getText() != null) {
                 sendEmails();
-                sendEmail.setBackground(Color.green);
                 System.out.println("Requirements satisfied!");
             } else {
-                sendEmail.setBackground(Color.red);
-                System.out.println("Requirements not satisfied!");
+                System.out.println("Requirements not satisfied!");              
             }
         }  
     }
