@@ -25,10 +25,10 @@ public class GraphicsButton extends JButton {
 
     private void drawSymbol(Graphics g, String symbolType) {
         Graphics2D g2d = (Graphics2D) g;
-        int symbolSize = Math.min(getWidth(), getHeight()) / 3;
+        int symbolSize = Math.min(getWidth(), getHeight()) / 3; // size of symbol 
         int padding = 5;
-        int symbolX = getWidth() - symbolSize - padding; // Draw on the right side of the button
-        int symbolY = (getHeight() - symbolSize) / 2; // Center vertically
+        int symbolX = getWidth() - symbolSize - padding; // place on the right side of the button
+        int symbolY = (getHeight() - symbolSize) / 2; // center vertically
 
         switch (symbolType) {
             case "Healthcare":
@@ -44,31 +44,32 @@ public class GraphicsButton extends JButton {
     }
 
     private void drawPlusSign(Graphics2D g2d, int x, int y, int size) {
-        g2d.setColor(Color.RED);
+        // health care plus sign 
+        g2d.setColor(Color.RED); 
         int thickness = size / 4;
-        g2d.fillRect(x + (size - thickness) / 2, y, thickness, size); // Vertical bar
-        g2d.fillRect(x, y + (size - thickness) / 2, size, thickness); // Horizontal bar
+        g2d.fillRect(x + (size - thickness) / 2, y, thickness, size); // vertical line 
+        g2d.fillRect(x, y + (size - thickness) / 2, size, thickness); // horizontal line 
     }
 
     private void drawShield(Graphics2D g2d, int x, int y, int size) {
-    // Draw the yellow shield body
-    g2d.setColor(Color.YELLOW);
-    int[] xPoints = {x + size / 2, x, x + size};
+    // triangle (symbolizes a warning sign) (we tried to make a shield but the calculations were not working out) 
+    g2d.setColor(Color.YELLOW); 
+    int[] xPoints = {x + size / 2, x, x + size}; // top, left, right (triangle points) 
     int[] yPoints = {y, y + size, y + size};
     g2d.fillPolygon(xPoints, yPoints, 3);
 
-    // Draw a black exclamation mark in the center of the shield
+    // a black exclamation mark in the center of the triangle
     g2d.setColor(Color.BLACK);
-    int exclamationWidth = size / 10;
-    int exclamationHeight = size / 3;
-    int exclamationX = x + size / 2 - exclamationWidth / 2;
-    int exclamationY = y + size / 4;
+    int eWidth = size / 10;
+    int eHeight = size / 3;
+    int eX = x + size / 2 - eWidth / 2;
+    int eY = y + size / 4;
 
-    // Draw the body of the exclamation mark
-    g2d.fillRect(exclamationX, exclamationY, exclamationWidth, exclamationHeight);
+    // the body of the exclamation mark
+    g2d.fillRect(eX, eY, eWidth, eHeight);
 
-    // Draw the dot of the exclamation mark
-    int dotSize = exclamationWidth;
+    // the exclamation mark
+    int dotSize = eWidth;
     int dotX = x + size / 2 - dotSize / 2;
     int dotY = y + (3 * size / 4);
     g2d.fillOval(dotX, dotY, dotSize, dotSize);
@@ -76,18 +77,17 @@ public class GraphicsButton extends JButton {
     }
 
     private void drawApple(Graphics2D g2d, int x, int y, int size) {
-    // Draw the red apple body
-    g2d.setColor(Color.RED);
+    g2d.setColor(Color.RED); // apple's body
     g2d.fillOval(x, y, size, size);
 
-    // Draw the brown stem
-    g2d.setColor(new Color(139, 69, 19)); // A dark brown color
+    // the brown stem
+    g2d.setColor(new Color(139, 69, 19)); // dark brown color
     int stemWidth = size / 10;
-    int stemHeight = size / 3;
+    int stemHeight = size / 2;
     g2d.fillRect(x + size / 2 - stemWidth / 2, y - stemHeight / 2, stemWidth, stemHeight);
 
-    // Draw a bigger green leaf
-    g2d.setColor(Color.GREEN.darker()); // Use a darker green for the leaf
+    // green leaf
+    g2d.setColor(Color.GREEN.darker()); // a darker green for the leaf
     g2d.fillOval(x + size / 2 - size / 8, y - size / 6, size / 4, size / 4);
     
     }
