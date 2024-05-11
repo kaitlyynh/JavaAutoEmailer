@@ -42,7 +42,7 @@ public class Emailer {
         JPanel leftPanelUpper = new JPanel();
         JPanel leftPanelLower = new JPanel();
         leftPanel.setLayout(new GridLayout(2,1));  
-        leftPanelUpper.setBackground(Color.magenta);
+        leftPanelUpper.setBackground(Color.lightGray);
         leftPanelLower.setBackground(Color.cyan);
         leftPanel.add(leftPanelUpper); 
         leftPanel.add(leftPanelLower); 
@@ -57,7 +57,7 @@ public class Emailer {
         System.out.println(selectDept.getAbsolutePath());
         //List of all files and directories
         String contents[] = selectDept.list();
-        System.out.println("List of files and directories in the specified directory:");
+       // System.out.println("List of files and directories in the specified directory:");
         for(int i=0; i<contents.length; i++) {
            deptCount++;
            System.out.println(contents[i] + deptCount);
@@ -69,12 +69,19 @@ public class Emailer {
         leftPanel.add(leftPanelUpper); 
         leftPanel.add(leftPanelLower);
         Color[] colors = {Color.LIGHT_GRAY.brighter(), Color.PINK.brighter(), Color.ORANGE};
+        String[] symbols = {"Security","Healthcare", "Education"};
         
         for (int i = 0; i < deptCount; i++) {
             deptButtons[i] = new JButton(contents[i]);
             System.out.println("Department Button: " + contents[i]);
+            deptButtons[i].setBackground(Color.lightGray);
+            deptButtons[i].setForeground(Color.BLACK); 
+            deptButtons[i].setOpaque(true);
+            deptButtons[i].setBorderPainted(true);
+            GraphicsButton button = new GraphicsButton(contents[i],symbols[i]);
            // deptButtons[i] = new graphics(contents[i], colors[i]);
             leftPanelUpper.add(deptButtons[i]);
+            leftPanelUpper.add(button);
             deptButtons[i].addActionListener(new DepartmentButtonListener());
         }
         // Action toolbar
@@ -151,9 +158,7 @@ public class Emailer {
                     
                 }
             }
-        }
-    }  
-   
+        }  
+    }       
 }
-
 
