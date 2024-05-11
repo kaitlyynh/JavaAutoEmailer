@@ -15,13 +15,14 @@ import javax.mail.internet.*;
  * @author kaitlynhuynh
  * Email: thejavareminder9000@gmail.com  
  * Password: javareminder9000 
- * App device password: ffrv woev uupa mscg
+ * App device password: hzkp axyz znkv kjuk
  */
 public class Emailer {
     private static String department;
     private static int deptCount;
     private JButton[] deptButtons; 
-    private DefaultTableModel model; 
+    private boolean[] deptButtonsPressed;
+    private DefaultTableModel table; //previously "model"
     private JPanel rightPanel; 
     private JPanel leftPanelLower;
 
@@ -29,6 +30,7 @@ public class Emailer {
     private static String path;
     private JButton fileButtons[];
     private static String currFile;
+    private JButton sendEmail;
     
     /**
      * @param args the command line arguments
@@ -36,15 +38,13 @@ public class Emailer {
     public static void main(String[] args) throws Exception {
         // TODO code application logic here
         Emailer e = new Emailer();
-        
+
     }
     
     public Emailer() {
+        resetEmailStatus(); 
         setupUI(); 
         setupRightPanel(); 
-//        String[] s = fileInAList("12:24 Healthcare.csv", "Healthcare");
-//        constructMsg(s, "1/3", "Alex Apple");
-//        String[] x = listOfFiles("Healthcare");
         
     }
 
@@ -81,8 +81,9 @@ public class Emailer {
        // System.out.println("List of files and directories in the specified directory:");
         for(int i=0; i<contents.length; i++) {
            deptCount++;
-           System.out.println(contents[i] + deptCount);
         }
+        //Set up button arrays
+        deptButtonsPressed = new boolean[deptCount];
         deptButtons = new JButton[deptCount];
         leftPanelUpper.setLayout(new GridLayout(deptCount + 2,1));
         TitledBorder titledBorder = BorderFactory.createTitledBorder("Departments"); 
@@ -91,6 +92,7 @@ public class Emailer {
         Color[] colors = {Color.LIGHT_GRAY.brighter(), Color.PINK.brighter(), Color.ORANGE};
         String[] symbols = {"Security","Healthcare", "Education"};
         
+        // iternates through all the different department creates buttons, graphics and adds them to panel
         for (int i = 0; i < deptCount; i++) {
             deptButtons[i] = new JButton(contents[i]);
             System.out.println("Department Button: " + contents[i]);
@@ -98,16 +100,17 @@ public class Emailer {
             deptButtons[i].setForeground(Color.BLACK); 
             deptButtons[i].setOpaque(true);
             deptButtons[i].setBorderPainted(true);
+            // add the graphics for each of the departments 
             GraphicsButton button = new GraphicsButton(contents[i],symbols[i]);
-           // deptButtons[i] = new graphics(contents[i], colors[i]);
             leftPanelUpper.add(deptButtons[i]);
             leftPanelUpper.add(button);
+            // when a department is clicked on take action 
             deptButtons[i].addActionListener(new DepartmentButtonListener());
         }
         // Add file buttons dynamically to lower left panel
         File directory = new File(path);
         String[] files = directory.list();
-        leftPanelLower.setLayout(new GridLayout(files.length, 1));
+        leftPanelLower.setLayout(new GridLayout(files.length + 1, 1));
         TitledBorder fileBorder = BorderFactory.createTitledBorder("Files"); 
         leftPanelLower.setBorder(fileBorder);
         // Add field for user to input week
@@ -119,8 +122,8 @@ public class Emailer {
         // Action toolbar
         TitledBorder titledBorder2 = BorderFactory.createTitledBorder("Action toolbar"); 
         leftPanelLower.setBorder(titledBorder2);
-        JButton sendEmail = new JButton("Send Emails");
-        sendEmail.addActionListener(e -> sendEmails()); // action listern for box selected 
+        sendEmail = new JButton("Send Emails");
+        sendEmail.addActionListener(new SendEmailActionListener()); // action listern for box selected 
         leftPanelUpper.add(sendEmail);
         jf.setVisible(true);
     }
@@ -128,10 +131,17 @@ public class Emailer {
         File directory = new File(path);
         String[] files = directory.list();
         leftPanelLower.removeAll();
-        leftPanelLower.setLayout(new GridLayout(files.length, 1));
+        leftPanelLower.setLayout(new GridLayout(files.length + 1, 1));
         TitledBorder fileBorder = BorderFactory.createTitledBorder("Files"); 
         leftPanelLower.setBorder(fileBorder);
         fileButtons = new JButton[files.length];
+        String labelContent = "Please select a file, there are " + files.length;
+        if (weekField.getText() == null || weekField.getText().equals("")) {
+            labelContent += "\nPlease enter a week within the schedule";
+        }
+        JTextArea textArea = new JTextArea(labelContent);
+        textArea.setBackground(Color.CYAN);
+        leftPanelLower.add(textArea);
         for (int i = 0; i < files.length; i++) {
             fileButtons[i] = new JButton(files[i]);
             fileButtons[i].addActionListener(new SelectFileButtonListener());
@@ -141,13 +151,27 @@ public class Emailer {
         leftPanelLower.revalidate();
         leftPanelLower.repaint();
     }
+    private void updateLowerPanelWithMessage() {
+        leftPanelLower.removeAll(); // Remove all components
+        leftPanelLower.setLayout(new BorderLayout()); // Reset layout
+        JLabel messageLabel = new JLabel("Select a department!");
+        messageLabel.setBackground(Color.CYAN);
+        messageLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        leftPanelLower.add(messageLabel, BorderLayout.CENTER); // Add message label
+        leftPanelLower.revalidate();
+        leftPanelLower.repaint();
+    }
+    // panel for displaying email subscribers 
     private void setupRightPanel() {
-            model = new DefaultTableModel(new Object[]{"Name", "Email", "Role", "Email Status", "Select"}, 0){ // creates a table 
+            table = new DefaultTableModel(new Object[]{"Name", "Email", "Role", "Email Status", "Select"}, 0){ // creates a table 
             @Override
+            // using the wildcard <?> to allow flexability for the type of data that can be returned (string, bool etc.) 
             public Class<?> getColumnClass(int column) {
                 switch (column) {
                     case 0:
+                        return String.class;
                     case 1:
+                        return String.class;
                     case 2:
                         return String.class;
                     case 3:
@@ -159,7 +183,7 @@ public class Emailer {
                 }
             }
             };
-            JTable table = new JTable(model);
+       JTable table = new JTable(this.table);
        JScrollPane scroll = new JScrollPane(table); 
        scroll.setBorder(BorderFactory.createTitledBorder("Select a Department"));
        rightPanel.add(scroll, BorderLayout.CENTER);
@@ -168,22 +192,23 @@ public class Emailer {
         String msg;
         String[] fileContents;
         try {
-            for (int i = 0; i < model.getRowCount(); i++) {
-            Boolean isSelected = (Boolean) model.getValueAt(i, 4); // check which ones are selected 
+            //iterate through table 
+            for (int i = 0; i < table.getRowCount(); i++) {
+            Boolean isSelected = (Boolean) table.getValueAt(i, 4); // check which ones are selected 
             if (Boolean.TRUE.equals(isSelected)) {
-                String email = (String) model.getValueAt(i, 1); // Get the email address
-                String name = (String) model.getValueAt(i, 0); // Get the name
+                String email = (String) table.getValueAt(i, 1); // gets the email address
+                String name = (String) table.getValueAt(i, 0); // gets the name
                 fileContents = fileInAList(currFile, department);
                 msg = constructMsg(fileContents, weekField.getText(), name);
                 sendEmail(msg, email); 
 //                sendEmail(email); // Send the email 
                 
-                updateEmailStatus(email, "yes"); // Update status in the database
-                model.setValueAt("yes", i, 3); // Update the table model
+                updateEmailStatus(email, "yes"); // update status in the database
+                table.setValueAt("yes", i, 3); // update the table model
             }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Error sending emails: " + ex.getMessage());
         }
         
     }
@@ -192,25 +217,41 @@ public class Emailer {
     }
     private void updateEmailStatus(String email, String status) {
         String url = "jdbc:mysql://localhost/user_info"; 
-        //String url2 = "jdbc:mysql://localhost:3306/users?zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=America/New_York";
+//        String url2 = "jdbc:mysql://localhost:3306/users?zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=America/New_York";
         try {
             Connection connection = java.sql.DriverManager.getConnection(url, "root", "2003");
-//           Connection connection = DriverManager.getConnection(url2,"root","");
-          // System.out.println("Connection to the database was successful.");
+//            Connection connection = DriverManager.getConnection(url2,"root","");
            String query =  "UPDATE users SET email_status = ? WHERE email = ?"; 
            PreparedStatement preparedS = connection.prepareStatement(query);
            preparedS.setString(1, status);
            preparedS.setString(2, email);
            preparedS.executeUpdate(); 
            connection.close();
-        } catch (SQLException ex) {
-            ex.printStackTrace();
+        } catch (SQLException e) {
+            System.err.println("Error sending emails: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
+    private void resetEmailStatus() {
+        String url = "jdbc:mysql://localhost/user_info"; 
+//        String url2 = "jdbc:mysql://localhost:3306/users?zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=America/New_York";
+        try {
+            Connection connection = java.sql.DriverManager.getConnection(url, "root", "2003");
+//            Connection connection = DriverManager.getConnection(url2,"root","");
+           String query =  "UPDATE users SET email_status = 'no'"; 
+           PreparedStatement preparedS = connection.prepareStatement(query);
+           preparedS.executeUpdate(); 
+           connection.close();
+        } catch (SQLException e) {
+            System.err.println("Error resetting email statuses: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+   
     private void getUserdata(String department){
            String url = "jdbc:mysql://localhost/user_info"; 
-//        String url2 = "jdbc:mysql://localhost:3306/users?zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=America/New_York";
+//         String url2 = "jdbc:mysql://localhost:3306/users?zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=America/New_York";
         try {
             Connection connection = java.sql.DriverManager.getConnection(url, "root", "2003");
 //           Connection connection = DriverManager.getConnection(url2,"root","");
@@ -218,8 +259,8 @@ public class Emailer {
            String query = "SELECT * FROM users WHERE Department = ?"; 
            PreparedStatement preparedStatement = connection.prepareStatement(query);
            preparedStatement.setString(1, department); 
-           ResultSet resultSet = preparedStatement.executeQuery();
-           model.setRowCount(0);// clears the previous results 
+           ResultSet resultSet = preparedStatement.executeQuery(); // gets the user info requested 
+           table.setRowCount(0);// clears the previous results 
            
              // read all data from query 
            while (resultSet.next()) {
@@ -228,20 +269,18 @@ public class Emailer {
               String role = resultSet.getString("roles");
               String emailS = resultSet.getString("email_status"); 
               Boolean status = "yes".equalsIgnoreCase(emailS); // convert emailstatus to Boolean here
-              model.addRow(new Object[]{name, email, role, emailS, status});  // new row to model
+              table.addRow(new Object[]{name, email, role, emailS, status});  // new row to model
            }
            // update the border title "department" subscribers 
            TitledBorder border = (TitledBorder) ((JScrollPane) rightPanel.getComponent(0)).getBorder();
            border.setTitle(department + " Subscribers");
-           rightPanel.revalidate();
-           rightPanel.repaint();
-            
            resultSet.close();
            preparedStatement.close();
            connection.close();
            
        }catch (SQLException e) {
            System.err.println("Connection failed: " + e.getMessage());
+           e.printStackTrace();
        }
     }
     private String[] listOfFiles(String deptName) {
@@ -329,7 +368,7 @@ public class Emailer {
         properties.put("mail.smtp.host", "smtp.gmail.com");
         properties.put("mail.smtp.port", "587");
         String emailFrom = "thejavareminder9000@gmail.com"; // tester
-        String emailFromPassword = "ffrv woev uupa mscg"; // tester secret key
+        String emailFromPassword = "hzkp axyz znkv kjuk"; // tester secret key
         Session session = Session.getInstance(properties, new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
@@ -366,25 +405,36 @@ public class Emailer {
         }
         return null;
     }
+    private void setAllToFalse() {
+        // set all buttons to an unpressed state, and remove their colors
+        for (int i = 0; i < deptCount; i++) {
+            deptButtonsPressed[i] = false;
+            deptButtons[i].setBackground(null);
+        }
+    }
     class DepartmentButtonListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
             for (int i = 0; i < deptCount; i++) {
-                if (e.getSource() == deptButtons[i]) {
-                    System.out.println(deptButtons[i].getText() + " was pressed.");
-                    if (department == deptButtons[i].getText()) {
-                        System.out.println(department + " unselected ");
-                        department = null;         
-                    } else { // Dept. was selected
+                if (e.getSource() == deptButtons[i]) { // selected
+                    if (deptButtonsPressed[i]) { // it was already selected
+                        System.out.println(deptButtons[i].getText() + " unselected ");
+                        setAllToFalse();
+                        department = null;  
+                        updateLowerPanelWithMessage();
+                    } else { // it was not pressed previously
+                        System.out.println(deptButtons[i].getText() + " selected ");
                         department = deptButtons[i].getText();
+                        setAllToFalse();
                         getUserdata(department); 
+                        deptButtonsPressed[i] = true;
                         path = "./src/emailer/Departments/" + department;
                         updateLowerPanelWithFileButtons();
+                        deptButtons[i].setBackground(Color.GREEN);
                     }
-                    
                 }
             }
-        }  
+        }
     }  
     class SelectFileButtonListener implements ActionListener {
         @Override
@@ -399,5 +449,17 @@ public class Emailer {
             }  
         }  
     }
+    class SendEmailActionListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if (department != null && weekField.getText() != null) {
+                sendEmails();
+                sendEmail.setBackground(Color.green);
+                System.out.println("Requirements satisfied!");
+            } else {
+                sendEmail.setBackground(Color.red);
+                System.out.println("Requirements not satisfied!");
+            }
+        }  
+    }
 }
-
