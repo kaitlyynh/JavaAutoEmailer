@@ -88,23 +88,74 @@ public class Emailer {
         TitledBorder titledBorder2 = BorderFactory.createTitledBorder("Action toolbar"); 
         leftPanelLower.setBorder(titledBorder2);
         JButton importButton = new JButton("Import Most Recent File");
-        JButton sendEmailButton = new JButton("Send Emails");
+        JButton sendEmail = new JButton("Send Emails");
+        sendEmail.addActionListener(e -> sendEmails()); // action listern for box selected 
         leftPanelLower.add(importButton);
-        leftPanelLower.add(sendEmailButton);
+        leftPanelLower.add(sendEmail);
         jf.setVisible(true);
     }
     
-    private void setupRightPanel() {
-        model = new DefaultTableModel(); // creates a table 
-        model.addColumn("Name");
-        model.addColumn("Email");
-        model.addColumn("Role");
-        model.addColumn("Email Status"); 
-        JTable table = new JTable(model);
-        JScrollPane scroll = new JScrollPane(table); 
-        scroll.setBorder(BorderFactory.createTitledBorder("Select a Department"));
-        rightPanel.add(scroll, BorderLayout.CENTER);
+    private void sendEmails() {
+        for (int i = 0; i < model.getRowCount(); i++) {
+            Boolean isSelected = (Boolean) model.getValueAt(i, 4); // check which ones are selected 
+            if (Boolean.TRUE.equals(isSelected)) {
+                String email = (String) model.getValueAt(i, 1); // Get the email address
+                String name = (String) model.getValueAt(i, 0); // Get the name
+                sendEmail(email); // Send the email 
+                updateEmailStatus(email, "yes"); // Update status in the database
+                model.setValueAt("yes", i, 3); // Update the table model
+            }
+        }
     }
+    
+    private void updateEmailStatus(String email, String status) {
+        String url2 = "jdbc:mysql://localhost:3306/users?zeroDateTimeBehavior=CONVERT_TO_NULL&serverTimezone=America/New_York";
+        try {
+          //  Connection connection = java.sql.DriverManager.getConnection(url, "root", "2003");
+           Connection connection = DriverManager.getConnection(url2,"root","");
+          // System.out.println("Connection to the database was successful.");
+           String query =  "UPDATE users SET email_status = ? WHERE email = ?"; 
+           PreparedStatement preparedS = connection.prepareStatement(query);
+           preparedS.setString(1, status);
+           preparedS.setString(2, email);
+           preparedS.executeUpdate(); 
+           connection.close();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+    
+    private void sendEmail(String email){
+        System.out.println("Sending email to " + email);
+    }
+        
+    
+    private void setupRightPanel() {
+        model = new DefaultTableModel(new Object[]{"Name", "Email", "Role", "Email Status", "Select"}, 0){ // creates a table 
+        
+            @Override
+            public Class<?> getColumnClass(int column) {
+                switch (column) {
+                    case 0:
+                    case 1:
+                    case 2:
+                        return String.class;
+                    case 3:
+                        return String.class;
+                    case 4:
+                        return Boolean.class; // to make sure to use checkboxes set emailstatus to boolean
+                    default:
+                        return Object.class;
+                }
+            }
+        };
+             
+       JTable table = new JTable(model);
+       JScrollPane scroll = new JScrollPane(table); 
+       scroll.setBorder(BorderFactory.createTitledBorder("Select a Department"));
+       rightPanel.add(scroll, BorderLayout.CENTER);
+    }
+                              
     
     
     private void getUserdata(String department){
@@ -126,7 +177,8 @@ public class Emailer {
               String email = resultSet.getString("email");
               String role = resultSet.getString("roles");
               String emailS = resultSet.getString("email_status"); 
-              model.addRow(new Object[]{name, email, role, emailS});  // new row to model
+              Boolean status = "yes".equalsIgnoreCase(emailS); // convert emailstatus to Boolean here
+              model.addRow(new Object[]{name, email, role, emailS, status});  // new row to model
            }
            // update the border title "department" subscribers 
            TitledBorder border = (TitledBorder) ((JScrollPane) rightPanel.getComponent(0)).getBorder();
@@ -137,6 +189,7 @@ public class Emailer {
            resultSet.close();
            preparedStatement.close();
            connection.close();
+           
        }catch (SQLException e) {
            System.err.println("Connection failed: " + e.getMessage());
        }
@@ -161,4 +214,3 @@ public class Emailer {
         }  
     }       
 }
-
